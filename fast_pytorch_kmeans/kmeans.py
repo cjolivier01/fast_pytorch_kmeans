@@ -11,7 +11,7 @@ class KMeans:
   Kmeans clustering algorithm implemented with PyTorch
 
   Parameters:
-    n_clusters: int, 
+    n_clusters: int,
       Number of clusters
 
     max_iter: int, default: 100
@@ -19,20 +19,20 @@ class KMeans:
 
     tol: float, default: 0.0001
       Tolerance
-    
+
     verbose: int, default: 0
       Verbosity
 
     mode: {'euclidean', 'cosine'}, default: 'euclidean'
       Type of distance measure
-      
+
     init_method: {'random', 'point', '++'}
       Type of initialization
 
     minibatch: {None, int}, default: None
       Batch size of MinibatchKmeans algorithm
       if None perform full KMeans algorithm
-      
+
   Attributes:
     centroids: torch.Tensor, shape: [n_clusters, n_features]
       cluster centroids
@@ -51,7 +51,7 @@ class KMeans:
       self.sim_func = self.euc_sim
     else:
       raise NotImplementedError()
-    
+
     self.centroids = None
 
   @staticmethod
@@ -101,7 +101,7 @@ class KMeans:
 
       def get_required_memory(chunk_size):
         return chunk_size * a.shape[1] * b.shape[0] * a.element_size() + n_samples * 2 * 4
-      
+
       splits = find_optimal_splits(n_samples, get_required_memory, device=a.device, safe_mode=True)
       chunk_size = math.ceil(n_samples / splits)
 
@@ -162,7 +162,12 @@ class KMeans:
       expanded_closest = closest[None].expand(self.n_clusters, -1)
       mask = (expanded_closest==arranged_mask).to(X.dtype)
       c_grad = mask @ x / mask.sum(-1)[..., :, None]
-      torch.nan_to_num_(c_grad)
+
+    #   try:
+    #     torch.nan_to_num(c_grad)
+    #   except:
+      cpu_tensor = torch.Tensor(np.nan_to_num(c_grad.cpu().numpy()))
+      c_grad = cpu_tensor.to(c_grad.device)
 
       error = (c_grad - self.centroids).pow(2).sum()
       if self.minibatch is not None:
